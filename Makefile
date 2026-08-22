@@ -1,6 +1,6 @@
 ARCHS = arm64 arm64e
-TARGET = iphone:clang:17.0:17.0
-SDK = 17.0
+TARGET = iphone:clang:14.0:14.0
+SDK = iphoneos
 
 INSTALL_TARGET_PROCESSES = Standoff2
 
