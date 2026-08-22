@@ -12,11 +12,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Unzip project
+    - name: Move files to root
       run: |
-        # Распаковываем архив с проектом
-        unzip -o hack77_ios*.zip -d .
-        # Смотрим что появилось
+        # Если есть папка hack77_ios - перемещаем всё из неё в корень
+        if [ -d "hack77_ios" ]; then
+          mv hack77_ios/* ./
+          mv hack77_ios/.[!.]* ./ 2>/dev/null || true
+          rm -rf hack77_ios
+        fi
         ls -la
     
     - name: Install Theos
@@ -28,7 +31,6 @@ jobs:
       run: |
         export THEOS=$(pwd)/theos
         export SDKVERSION=16.0
-        # Проверяем что Makefile теперь есть
         ls -la
         make clean || true
         make package
