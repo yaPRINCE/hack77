@@ -28,13 +28,7 @@ jobs:
     - name: Install Theos
       run: |
         git clone --depth 1 https://github.com/theos/theos.git theos
-        
-        # Удаляем битую ссылку bin, если она есть
-        rm -f theos/bin
-        # Создаем нормальную папку bin
-        mkdir -p theos/bin
-        
-        # Копируем dm.pl
+        # Не удаляем bin, просто копируем dm.pl внутрь
         cp /usr/local/bin/dm.pl theos/bin/dm.pl
         chmod +x theos/bin/dm.pl
         
