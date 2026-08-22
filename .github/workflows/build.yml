@@ -12,23 +12,47 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Install Theos dependencies
+    - name: Install dm.pl and dependencies
       run: |
-        sudo cpan install IO::Compress::Lzma || true
-        sudo cpan install IO::Compress::Xz || true
+        # Устанавливаем Perl модули для dm.pl
+        sudo cpan install IO::Compress::Lzma IO::Compress::Xz || true
+        sudo cpan install IO::Compress::Base || true
+        
+        # Скачиваем dm.pl если его нет
+        sudo curl -L https://raw.githubusercontent.com/theos/theos/master/bin/dm.pl -o /usr/local/bin/dm.pl
+        sudo chmod +x /usr/local/bin/dm.pl
+        
+        # Проверяем установку
+        which dm.pl || echo "dm.pl installed"
     
     - name: Install Theos
       run: |
         git clone https://github.com/theos/theos.git $THEOS
         echo "THEOS=$THEOS" >> $GITHUB_ENV
+        
+        # Создаем ссылку на dm.pl в Theos
+        cp /usr/local/bin/dm.pl $THEOS/bin/dm.pl || true
+        chmod +x $THEOS/bin/dm.pl || true
     
     - name: Build
       run: |
         export THEOS=$(pwd)/theos
         export SDKVERSION=16.0
-        ls -la
+        export PATH=$THEOS/bin:$PATH
+        
+        # Проверяем наличие dm.pl
+        ls -la $THEOS/bin/dm.pl || echo "dm.pl not found in theos/bin"
+        which dm.pl || echo "dm.pl not in PATH"
+        
         make clean || true
         make package
+        
+    - name: Find and upload .dylib
+      run: |
+        # Ищем скомпилированный .dylib
+        find . -name "*.dylib" -type f
+        cp $(find . -name "*.dylib" -type f | head -n 1) ./hack77.dylib 2>/dev/null || echo "No .dylib found"
+        ls -la hack77.dylib || echo "hack77.dylib not created"
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
