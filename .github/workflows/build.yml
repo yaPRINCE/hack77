@@ -29,7 +29,12 @@ jobs:
       run: |
         git clone --depth 1 https://github.com/theos/theos.git theos
         
-        # Просто копируем dm.pl в существующую папку bin
+        # Удаляем битую ссылку (даже если это папка)
+        rm -rf theos/bin
+        # Создаем обычную папку
+        mkdir -p theos/bin
+        
+        # Копируем dm.pl
         cp /usr/local/bin/dm.pl theos/bin/dm.pl
         chmod +x theos/bin/dm.pl
         
