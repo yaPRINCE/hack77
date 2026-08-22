@@ -25,30 +25,33 @@ jobs:
         sudo curl -L https://raw.githubusercontent.com/theos/theos/master/bin/dm.pl -o /usr/local/bin/dm.pl
         sudo chmod +x /usr/local/bin/dm.pl
     
-    - name: Install Theos
+    - name: Install and Update Theos
       run: |
         git clone --depth 1 https://github.com/theos/theos.git theos
-        
-        # Удаляем битую ссылку (даже если это папка)
         rm -rf theos/bin
-        # Создаем обычную папку
         mkdir -p theos/bin
-        
-        # Копируем dm.pl
         cp /usr/local/bin/dm.pl theos/bin/dm.pl
         chmod +x theos/bin/dm.pl
         
         echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
         echo "$(pwd)/theos/bin" >> $GITHUB_PATH
         
-        # Скачиваем SDK
+        # КРИТИЧЕСКИЙ ШАГ: обновляем Theos и скачиваем vendor
         cd theos
-        curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
-        unzip -q sdks.zip
-        mkdir -p sdks
-        mv sdks-master/*.sdk sdks/ || true
-        ls -la sdks/
+        ./bin/update-theos || echo "Update script failed, continuing..."
         cd ..
+        
+        # Проверяем, что vendor появился
+        ls -la theos/vendor/ || echo "Vendor still missing"
+    
+    - name: Manual vendor fix (if update fails)
+      run: |
+        # Если update-theos не сработал, скачиваем vendor вручную
+        if [ ! -d "theos/vendor" ]; then
+          echo "Vendor not found, downloading manually..."
+          git clone --depth 1 https://github.com/theos/vendor.git theos/vendor || echo "Vendor clone failed"
+          ls -la theos/vendor/
+        fi
     
     - name: Build
       run: |
