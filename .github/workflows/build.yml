@@ -33,7 +33,7 @@ jobs:
         cp /usr/local/bin/dm.pl theos/bin/dm.pl
         chmod +x theos/bin/dm.pl
         
-        # СОЗДАЕМ VENDOR ВРУЧНУЮ (решает проблему)
+        # СОЗДАЁМ VENDOR В КОРНЕ THEOS (НЕ В BIN!)
         mkdir -p theos/vendor/include
         mkdir -p theos/vendor/lib
         touch theos/vendor/include/.placeholder
@@ -58,8 +58,9 @@ jobs:
         export IPHONEOS_DEPLOYMENT_TARGET=14.0
         export PATH=$THEOS/bin:$PATH
         
-        # Проверяем, что vendor создан
-        ls -la $THEOS/vendor/ || echo "Vendor not found"
+        # Проверяем, что vendor создан в правильном месте
+        echo "Проверка vendor:"
+        ls -la $THEOS/vendor/ || echo "Vendor не найден в корне THEOS!"
         make clean || true
         make package || true
         
