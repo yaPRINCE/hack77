@@ -25,7 +25,7 @@ jobs:
         sudo curl -L https://raw.githubusercontent.com/theos/theos/master/bin/dm.pl -o /usr/local/bin/dm.pl
         sudo chmod +x /usr/local/bin/dm.pl
     
-    - name: Install Theos and SDK
+    - name: Install and Update Theos
       run: |
         git clone --depth 1 https://github.com/theos/theos.git theos
         rm -rf theos/bin
@@ -33,16 +33,19 @@ jobs:
         cp /usr/local/bin/dm.pl theos/bin/dm.pl
         chmod +x theos/bin/dm.pl
         
-        # СОЗДАЁМ VENDOR ПРАВИЛЬНО (с файлами внутри)
-        mkdir -p theos/vendor/include
-        mkdir -p theos/vendor/lib
-        echo "// placeholder" > theos/vendor/include/placeholder.h
-        echo "/* placeholder */" > theos/vendor/lib/placeholder.c
-        
         echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
         echo "$(pwd)/theos/bin" >> $GITHUB_PATH
         
-        # Скачиваем и распаковываем SDK
+        # КЛЮЧЕВОЙ ШАГ: запускаем официальное обновление Theos
+        cd theos
+        ./bin/update-theos || echo "Update script failed, continuing..."
+        cd ..
+        
+        # Проверяем, что vendor теперь полностью заполнен
+        ls -la theos/vendor/ || echo "Vendor still missing"
+    
+    - name: Setup SDK
+      run: |
         cd theos
         curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
         unzip -q sdks.zip
@@ -58,14 +61,9 @@ jobs:
         export IPHONEOS_DEPLOYMENT_TARGET=14.0
         export PATH=$THEOS/bin:$PATH
         
-        # Проверяем содержимое vendor
-        echo "Содержимое vendor:"
-        ls -la $THEOS/vendor/
-        echo "Содержимое vendor/include:"
-        ls -la $THEOS/vendor/include/
-        echo "Содержимое vendor/lib:"
-        ls -la $THEOS/vendor/lib/
-        
+        # Проверяем наличие vendor
+        echo "Проверка vendor после update-theos:"
+        ls -la $THEOS/vendor/ || echo "Vendor не найден!"
         make clean || true
         make package || true
         
