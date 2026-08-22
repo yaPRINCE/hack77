@@ -21,9 +21,12 @@ jobs:
       run: |
         export THEOS=$(pwd)/theos
         export SDKVERSION=16.0
+        # Убеждаемся что мы в корне проекта
+        ls -la
+        # Создаем ссылку на Makefile если нужно
         make clean || true
         make package
-    
+        
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
