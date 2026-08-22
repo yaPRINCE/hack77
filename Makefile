@@ -1,6 +1,6 @@
 ARCHS = arm64 arm64e
-TARGET = iphone:clang:14.5:16.0
-SDK = 16.0
+TARGET = iphone:clang:latest:latest
+SDK = latest
 
 INSTALL_TARGET_PROCESSES = Standoff2
 
@@ -15,4 +15,5 @@ hack77_LDFLAGS = -framework UIKit -framework CoreGraphics -lobjc -lc++
 include $(THEOS_MAKE_PATH)/tweak.mk
 
 after-stage::
-	@cp $(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/$(TWEAK_NAME).dylib ./$(TWEAK_NAME).dylib || true
+	@echo "✅ Build complete!"
+	@cp $(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/$(TWEAK_NAME).dylib ./$(TWEAK_NAME).dylib 2>/dev/null || echo "Waiting for build..."
