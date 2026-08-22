@@ -25,7 +25,7 @@ jobs:
         sudo curl -L https://raw.githubusercontent.com/theos/theos/master/bin/dm.pl -o /usr/local/bin/dm.pl
         sudo chmod +x /usr/local/bin/dm.pl
     
-    - name: Install and Update Theos
+    - name: Install Theos and SDK
       run: |
         git clone --depth 1 https://github.com/theos/theos.git theos
         rm -rf theos/bin
@@ -36,22 +36,21 @@ jobs:
         echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
         echo "$(pwd)/theos/bin" >> $GITHUB_PATH
         
-        # КРИТИЧЕСКИЙ ШАГ: обновляем Theos и скачиваем vendor
+        # Скачиваем и правильно распаковываем SDK
         cd theos
-        ./bin/update-theos || echo "Update script failed, continuing..."
+        curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
+        unzip -q sdks.zip
+        # Создаем папку sdks и перемещаем туда все .sdk папки
+        mkdir -p sdks
+        # Перемещаем папки, а не просто файлы
+        for sdk in sdks-master/*.sdk; do
+          if [ -d "$sdk" ]; then
+            mv "$sdk" sdks/
+          fi
+        done
+        # Проверяем результат
+        ls -la sdks/
         cd ..
-        
-        # Проверяем, что vendor появился
-        ls -la theos/vendor/ || echo "Vendor still missing"
-    
-    - name: Manual vendor fix (if update fails)
-      run: |
-        # Если update-theos не сработал, скачиваем vendor вручную
-        if [ ! -d "theos/vendor" ]; then
-          echo "Vendor not found, downloading manually..."
-          git clone --depth 1 https://github.com/theos/vendor.git theos/vendor || echo "Vendor clone failed"
-          ls -la theos/vendor/
-        fi
     
     - name: Build
       run: |
@@ -60,7 +59,8 @@ jobs:
         export IPHONEOS_DEPLOYMENT_TARGET=14.0
         export PATH=$THEOS/bin:$PATH
         
-        ls -la $THEOS/bin/dm.pl
+        # Проверяем наличие SDK
+        ls -la $THEOS/sdks/
         make clean || true
         make package || true
         
