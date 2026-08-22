@@ -33,11 +33,11 @@ jobs:
         cp /usr/local/bin/dm.pl theos/bin/dm.pl
         chmod +x theos/bin/dm.pl
         
-        # СОЗДАЁМ VENDOR В КОРНЕ THEOS (НЕ В BIN!)
+        # СОЗДАЁМ VENDOR ПРАВИЛЬНО (с файлами внутри)
         mkdir -p theos/vendor/include
         mkdir -p theos/vendor/lib
-        touch theos/vendor/include/.placeholder
-        touch theos/vendor/lib/.placeholder
+        echo "// placeholder" > theos/vendor/include/placeholder.h
+        echo "/* placeholder */" > theos/vendor/lib/placeholder.c
         
         echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
         echo "$(pwd)/theos/bin" >> $GITHUB_PATH
@@ -58,9 +58,14 @@ jobs:
         export IPHONEOS_DEPLOYMENT_TARGET=14.0
         export PATH=$THEOS/bin:$PATH
         
-        # Проверяем, что vendor создан в правильном месте
-        echo "Проверка vendor:"
-        ls -la $THEOS/vendor/ || echo "Vendor не найден в корне THEOS!"
+        # Проверяем содержимое vendor
+        echo "Содержимое vendor:"
+        ls -la $THEOS/vendor/
+        echo "Содержимое vendor/include:"
+        ls -la $THEOS/vendor/include/
+        echo "Содержимое vendor/lib:"
+        ls -la $THEOS/vendor/lib/
+        
         make clean || true
         make package || true
         
