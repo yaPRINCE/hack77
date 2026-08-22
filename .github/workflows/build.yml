@@ -7,37 +7,40 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Show available SDKs
+    - name: Install dependencies
       run: |
-        xcodebuild -showsdks | grep iPhoneOS
-        echo "---"
-        ls -la /Applications/Xcode*.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/ || true
-    
+        sudo apt-get update
+        sudo apt-get install -y git make curl unzip \
+          gcc-multilib g++-multilib \
+          libxml2-dev libssl-dev libplist-dev \
+          libzip-dev libz-dev
+        
     - name: Install Theos
       run: |
-        git clone https://github.com/theos/theos.git theos
+        git clone --depth 1 https://github.com/theos/theos.git theos
         echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
         echo "$(pwd)/theos/bin" >> $GITHUB_PATH
-    
-    - name: Update Theos
-      run: |
+        # Скачиваем SDK (iPhoneOS 14.5)
         cd theos
-        ./bin/update-theos || echo "Update skipped"
+        curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
+        unzip -q sdks.zip
+        mkdir -p sdks
+        mv sdks-master/*.sdk sdks/ || true
+        ls -la sdks/
         cd ..
     
     - name: Build
       run: |
         export THEOS=$(pwd)/theos
-        export PATH=$THEOS/bin:$PATH
-        
+        export SDKVERSION=14.5
+        export IPHONEOS_DEPLOYMENT_TARGET=14.0
         make clean || true
         make package || true
-        
         find . -name "*.dylib" -exec cp {} ./hack77.dylib \;
         ls -la hack77.dylib || echo "No dylib found"
         
