@@ -21,13 +21,23 @@ jobs:
           libzip-dev libz-dev perl libio-compress-perl \
           libtool autoconf automake
     
+    - name: Install dm.pl
+      run: |
+        sudo curl -L https://raw.githubusercontent.com/theos/theos/master/bin/dm.pl -o /usr/local/bin/dm.pl
+        sudo chmod +x /usr/local/bin/dm.pl
+        which dm.pl
+    
     - name: Install Theos
       run: |
         git clone --depth 1 https://github.com/theos/theos.git theos
+        # Копируем dm.pl в Theos
+        cp /usr/local/bin/dm.pl theos/bin/dm.pl
+        chmod +x theos/bin/dm.pl
+        
         echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
         echo "$(pwd)/theos/bin" >> $GITHUB_PATH
         
-        # Скачиваем недостающие компоненты Theos
+        # Обновляем Theos
         cd theos
         make update-theos || echo "Update skipped"
         cd ..
@@ -35,7 +45,6 @@ jobs:
     - name: Setup SDK
       run: |
         cd theos
-        # Скачиваем и распаковываем SDK в правильную папку
         curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
         unzip -q sdks.zip
         mkdir -p sdks
@@ -50,17 +59,7 @@ jobs:
         export IPHONEOS_DEPLOYMENT_TARGET=14.0
         export PATH=$THEOS/bin:$PATH
         
-        # Создаем Tweak.xm, если его нет
-        if [ ! -f "Tweak.xm" ]; then
-          echo '%hook UIApplication
-        - (void)sendEvent:(UIEvent *)event {
-            %orig;
-            NSLog(@"[Hack77] Test hook working!");
-        }
-        %end' > Tweak.xm
-        fi
-        
-        # Создаем Makefile для Theos
+        # Создаем Makefile
         cat > Makefile << 'EOF'
         ARCHS = arm64 arm64e
         TARGET = iphone:clang:14.5:14.5
@@ -81,6 +80,20 @@ jobs:
         after-stage::
         	@cp $(THEOS_STAGING_DIR)/Library/MobileSubstrate/DynamicLibraries/$(TWEAK_NAME).dylib ./$(TWEAK_NAME).dylib 2>/dev/null || true
         EOF
+        
+        # Создаем Tweak.xm
+        cat > Tweak.xm << 'EOF'
+        %hook UIApplication
+        - (void)sendEvent:(UIEvent *)event {
+            %orig;
+            NSLog(@"[Hack77] Test hook working!");
+        }
+        %end
+        EOF
+        
+        # Проверяем наличие dm.pl
+        ls -la $THEOS/bin/dm.pl
+        which dm.pl || echo "dm.pl not in PATH"
         
         make clean || true
         make package || true
