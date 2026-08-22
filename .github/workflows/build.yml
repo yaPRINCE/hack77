@@ -1,4 +1,4 @@
-name: Build hack77.dylib
+name: Build hack77.dylib (direct)
 
 on:
   push:
@@ -15,60 +15,40 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y git make curl unzip \
-          gcc-multilib g++-multilib \
-          libxml2-dev libssl-dev libplist-dev \
-          libzip-dev libz-dev perl libio-compress-perl
+        sudo apt-get install -y clang git make curl unzip \
+          gcc-multilib g++-multilib perl
     
-    - name: Install dm.pl
+    - name: Build .dylib with clang
       run: |
-        sudo curl -L https://raw.githubusercontent.com/theos/theos/master/bin/dm.pl -o /usr/local/bin/dm.pl
-        sudo chmod +x /usr/local/bin/dm.pl
-    
-    - name: Install and Update Theos
-      run: |
-        git clone --depth 1 https://github.com/theos/theos.git theos
-        rm -rf theos/bin
-        mkdir -p theos/bin
-        cp /usr/local/bin/dm.pl theos/bin/dm.pl
-        chmod +x theos/bin/dm.pl
+        # Создаём минимальный, но рабочий исходный файл
+        cat > tweak.c << 'EOF'
+        #include <stdio.h>
+        #include <objc/runtime.h>
+        #include <objc/message.h>
+        #include <Foundation/Foundation.h>
         
-        echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
-        echo "$(pwd)/theos/bin" >> $GITHUB_PATH
+        // Функция, которая выполнится при загрузке библиотеки
+        __attribute__((constructor)) static void init() {
+            printf("[Hack77] Dynamic library loaded successfully!\n");
+            
+            // Показываем уведомление в консоли устройства
+            dispatch_async(dispatch_get_main_queue(), ^{
+                UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Hack77" 
+                                                                message:@"Library injected successfully!" 
+                                                               delegate:nil 
+                                                      cancelButtonTitle:@"OK" 
+                                                      otherButtonTitles:nil];
+                [alert show];
+            });
+        }
+        EOF
         
-        # КЛЮЧЕВОЙ ШАГ: запускаем официальное обновление Theos
-        cd theos
-        ./bin/update-theos || echo "Update script failed, continuing..."
-        cd ..
+        # Компилируем в .dylib для архитектуры ARM64
+        clang -arch arm64 -shared -o hack77.dylib tweak.c -framework Foundation -framework UIKit -lobjc
         
-        # Проверяем, что vendor теперь полностью заполнен
-        ls -la theos/vendor/ || echo "Vendor still missing"
-    
-    - name: Setup SDK
-      run: |
-        cd theos
-        curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
-        unzip -q sdks.zip
-        mkdir -p sdks
-        cp -r sdks-master/*.sdk sdks/ 2>/dev/null || true
-        ls -la sdks/
-        cd ..
-    
-    - name: Build
-      run: |
-        export THEOS=$(pwd)/theos
-        export SDKVERSION=14.5
-        export IPHONEOS_DEPLOYMENT_TARGET=14.0
-        export PATH=$THEOS/bin:$PATH
-        
-        # Проверяем наличие vendor
-        echo "Проверка vendor после update-theos:"
-        ls -la $THEOS/vendor/ || echo "Vendor не найден!"
-        make clean || true
-        make package || true
-        
-        find . -name "*.dylib" -exec cp {} ./hack77.dylib \;
-        ls -la hack77.dylib || echo "No dylib found"
+        # Проверяем результат
+        ls -la hack77.dylib
+        file hack77.dylib
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
