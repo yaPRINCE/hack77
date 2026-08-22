@@ -12,6 +12,13 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Unzip project
+      run: |
+        # Распаковываем архив с проектом
+        unzip -o hack77_ios*.zip -d .
+        # Смотрим что появилось
+        ls -la
+    
     - name: Install Theos
       run: |
         git clone https://github.com/theos/theos.git $THEOS
@@ -21,9 +28,8 @@ jobs:
       run: |
         export THEOS=$(pwd)/theos
         export SDKVERSION=16.0
-        # Убеждаемся что мы в корне проекта
+        # Проверяем что Makefile теперь есть
         ls -la
-        # Создаем ссылку на Makefile если нужно
         make clean || true
         make package
         
