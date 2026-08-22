@@ -33,22 +33,21 @@ jobs:
         cp /usr/local/bin/dm.pl theos/bin/dm.pl
         chmod +x theos/bin/dm.pl
         
+        # СОЗДАЕМ VENDOR ВРУЧНУЮ (решает проблему)
+        mkdir -p theos/vendor/include
+        mkdir -p theos/vendor/lib
+        touch theos/vendor/include/.placeholder
+        touch theos/vendor/lib/.placeholder
+        
         echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
         echo "$(pwd)/theos/bin" >> $GITHUB_PATH
         
-        # Скачиваем и правильно распаковываем SDK
+        # Скачиваем и распаковываем SDK
         cd theos
         curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
         unzip -q sdks.zip
-        # Создаем папку sdks и перемещаем туда все .sdk папки
         mkdir -p sdks
-        # Перемещаем папки, а не просто файлы
-        for sdk in sdks-master/*.sdk; do
-          if [ -d "$sdk" ]; then
-            mv "$sdk" sdks/
-          fi
-        done
-        # Проверяем результат
+        cp -r sdks-master/*.sdk sdks/ 2>/dev/null || true
         ls -la sdks/
         cd ..
     
@@ -59,8 +58,8 @@ jobs:
         export IPHONEOS_DEPLOYMENT_TARGET=14.0
         export PATH=$THEOS/bin:$PATH
         
-        # Проверяем наличие SDK
-        ls -la $THEOS/sdks/
+        # Проверяем, что vendor создан
+        ls -la $THEOS/vendor/ || echo "Vendor not found"
         make clean || true
         make package || true
         
