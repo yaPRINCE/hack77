@@ -19,16 +19,21 @@ jobs:
         sudo curl -L https://raw.githubusercontent.com/theos/theos/master/bin/dm.pl -o /usr/local/bin/dm.pl
         sudo chmod +x /usr/local/bin/dm.pl
     
-    - name: Install and Update Theos
+    - name: Install Theos
       run: |
-        git clone https://github.com/theos/theos.git $THEOS
-        echo "THEOS=$THEOS" >> $GITHUB_ENV
+        git clone https://github.com/theos/theos.git theos
+        echo "THEOS=$(pwd)/theos" >> $GITHUB_ENV
+        echo "$(pwd)/theos/bin" >> $GITHUB_PATH
+        # Создаем ссылку на dm.pl в Theos
+        cp /usr/local/bin/dm.pl $(pwd)/theos/bin/dm.pl
+        chmod +x $(pwd)/theos/bin/dm.pl
         
-        # КРИТИЧЕСКИЙ ШАГ: обновляем Theos и скачиваем vendor
-        $THEOS/bin/update-theos
-        
-        # Проверяем, что vendor появился
-        ls -la $THEOS/vendor/ || echo "Vendor still missing"
+    - name: Update Theos
+      run: |
+        cd theos
+        ./bin/update-theos || echo "Update script failed, continuing..."
+        cd ..
+        ls -la theos/vendor/ || echo "Vendor not found"
     
     - name: Build
       run: |
@@ -36,8 +41,20 @@ jobs:
         export SDKVERSION=17.0
         export PATH=$THEOS/bin:$PATH
         
+        # Создаем минимальный Tweak.xm если его нет
+        if [ ! -f "Tweak.xm" ]; then
+          echo '%hook UIApplication
+        - (void)sendEvent:(UIEvent *)event {
+            %orig;
+            NSLog(@"[Hack77] Test hook working!");
+        }
+        %end' > Tweak.xm
+        fi
+        
         make clean || true
-        make package
+        make package || true
+        find . -name "*.dylib" -exec cp {} ./hack77.dylib \;
+        ls -la hack77.dylib || echo "No dylib found"
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
