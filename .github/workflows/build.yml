@@ -1,0 +1,31 @@
+name: Build hack77.dylib
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Theos
+      run: |
+        git clone https://github.com/theos/theos.git $THEOS
+        echo "THEOS=$THEOS" >> $GITHUB_ENV
+    
+    - name: Build
+      run: |
+        export THEOS=$(pwd)/theos
+        export SDKVERSION=16.0
+        make clean || true
+        make package
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: hack77.dylib
+        path: hack77.dylib
